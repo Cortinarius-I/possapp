@@ -155,6 +155,7 @@
         let marks = [];
         let buttons = [];
         let baseLifetime = 3 * 60 * 1000; // 3 minutes in milliseconds
+        let imagesLoaded = false;
         
         // Check hide state from localStorage
         try {
@@ -172,21 +173,96 @@
           console.error("Error checking hide state:", error);
         }
         
+        // Preload function to handle image loading
+        p.preload = function() {
+          console.log("Loading images...");
+          loadImages();
+        };
+        
         // Setup function
         p.setup = function() {
           console.log("P5 setup starting");
           p.createCanvas(p.windowWidth, p.windowHeight);
           setupButtons();
-          loadImages();
           console.log("P5 setup complete");
         };
         
-        // images
-function loadImages() {
-  frontImage = p.loadImage('images/front.png');
-  backImage = p.loadImage('images/back.png');
-  frownImage = p.loadImage('images/frown.png');
-}
+        // Load images with proper callbacks
+        function loadImages() {
+          let loadedCount = 0;
+          
+          function imageReady() {
+            loadedCount++;
+            console.log(`Image loaded: ${loadedCount}/3`);
+            if (loadedCount === 3) {
+              imagesLoaded = true;
+              console.log("All images loaded successfully");
+              
+              // Pre-load pixel data
+              frontImage.loadPixels();
+              backImage.loadPixels();
+              frownImage.loadPixels();
+            }
+          }
+          
+          function imageError(err) {
+            console.error("Failed to load image:", err);
+            
+            // Create fallback images if loading fails
+            createFallbackImages();
+            imagesLoaded = true;
+          }
+          
+          // Try to load images
+          frontImage = p.loadImage('images/front.png', imageReady, imageError);
+          backImage = p.loadImage('images/back.png', imageReady, imageError);
+          frownImage = p.loadImage('images/frown.png', imageReady, imageError);
+        }
+        
+        // Create fallback images if loading fails
+        function createFallbackImages() {
+          console.log("Creating fallback images");
+          
+          // Create happy face image
+          frontImage = p.createGraphics(400, 500);
+          frontImage.background(200, 230, 255);
+          frontImage.fill(255);
+          frontImage.ellipse(200, 200, 300, 300);
+          frontImage.fill(0);
+          frontImage.ellipse(150, 150, 20, 20);
+          frontImage.ellipse(250, 150, 20, 20);
+          frontImage.noFill();
+          frontImage.stroke(0);
+          frontImage.strokeWeight(3);
+          frontImage.arc(200, 230, 150, 100, 0, p.PI);
+          frontImage.loadPixels();
+          
+          // Create back image
+          backImage = p.createGraphics(400, 500);
+          backImage.background(230, 210, 200);
+          backImage.fill(255);
+          backImage.ellipse(200, 200, 300, 300);
+          backImage.fill(0);
+          backImage.textSize(40);
+          backImage.textAlign(p.CENTER, p.CENTER);
+          backImage.text("BACK", 200, 200);
+          backImage.loadPixels();
+          
+          // Create frowning image
+          frownImage = p.createGraphics(400, 500);
+          frownImage.background(255, 200, 200);
+          frownImage.fill(255);
+          frownImage.ellipse(200, 200, 300, 300);
+          frownImage.fill(0);
+          frownImage.ellipse(150, 150, 20, 20);
+          frownImage.ellipse(250, 150, 20, 20);
+          frownImage.noFill();
+          frownImage.stroke(0);
+          frownImage.strokeWeight(3);
+          frownImage.arc(200, 270, 150, 100, p.PI, p.TWO_PI);
+          frownImage.loadPixels();
+        }
+        
         // Create tool icons
         function getToolIcon(tool, size = 30) {
           let icon = p.createGraphics(size, size);
@@ -242,6 +318,53 @@ function loadImages() {
           return icon;
         }
         
+        // Check if a point is on a visible part of the image
+        function isPointOnVisiblePart(x, y, side) {
+          // If images aren't loaded yet, use a simple circular area check
+          if (!imagesLoaded) {
+            const centerX = 200;
+            const centerY = 200;
+            const radius = 150;
+            const distSq = (x - centerX) * (x - centerX) + (y - centerY) * (y - centerY);
+            return distSq <= radius * radius;
+          }
+          
+          // Get the right image based on side and state
+          let img;
+          if (side === 'back') {
+            img = backImage;
+          } else {
+            img = isFrowning ? frownImage : frontImage;
+          }
+          
+          // Safety checks
+          if (!img || !img.pixels) {
+            console.log("Image not ready for pixel check");
+            return true; // Allow marks during loading as a fallback
+          }
+          
+          // Bounds check
+          if (x < 0 || x >= img.width || y < 0 || y >= img.height) {
+            return false;
+          }
+          
+          // Load pixel data
+          img.loadPixels();
+          
+          // Calculate the position in the pixel array
+          const pixelIndex = Math.floor(y) * img.width + Math.floor(x);
+          const d = pixelIndex * 4;
+          
+          // Verify we're not accessing out of bounds
+          if (d < 0 || d + 3 >= img.pixels.length) {
+            console.warn("Pixel access out of bounds", x, y, d, img.pixels.length);
+            return false;
+          }
+          
+          // Check alpha value
+          return img.pixels[d + 3] > 10;
+        }
+        
         // Calculate the current lifetime based on number of kisses
         function getCurrentLifetime() {
           const kisses = marks.filter(m => !m.expired && m.type === 'kiss').length;
@@ -269,13 +392,13 @@ function loadImages() {
           }
         }
         
-        // Count non-expired marks
-        function countMarks(side) {
-  return {
-    nonKisses: marks.filter(m => !m.expired && m.type !== 'kiss').length,
-    kisses: marks.filter(m => !m.expired && m.type === 'kiss').length,
-    bandages: marks.filter(m => !m.expired && m.isBandage).length
-  };
+        // Count non-expired marks across all sides
+        function countAllMarks() {
+          return {
+            nonKisses: marks.filter(m => !m.expired && m.type !== 'kiss').length,
+            kisses: marks.filter(m => !m.expired && m.type === 'kiss').length,
+            bandages: marks.filter(m => !m.expired && m.isBandage).length
+          };
         }
         
         // Draw function
@@ -316,34 +439,22 @@ function loadImages() {
             currentImage = frownImage;
           }
           
-          p.image(currentImage, imgX, imgY);
-
-          // Function to only mark visible image
-function isPointOnVisiblePart(x, y, side) {
-  // Get the right image based on side and state
-  let img;
-  if (side === 'back') {
-    img = backImage;
-  } else {
-    img = isFrowning ? frownImage : frontImage;
-  }
-  
-  // Load pixel data (must call this before accessing pixels)
-  img.loadPixels();
-  
-  // Calculate the position in the pixel array
-  // Each pixel has 4 values (RGBA)
-  const d = 4 * (Math.floor(y) * img.width + Math.floor(x));
-  
-  // Check if the alpha value (fourth value) is above a threshold
-  // Pixels array format: [R, G, B, A, R, G, B, A, ...]
-  return img.pixels[d + 3] > 10; // Alpha threshold (0-255)
-}
+          // Draw the image
+          if (currentImage) {
+            p.image(currentImage, imgX, imgY);
+          } else {
+            // Fallback if image isn't loaded
+            p.fill(200);
+            p.rect(imgX, imgY, 400, 500);
+            p.fill(0);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.text("Loading...", imgX + 200, imgY + 250);
+          }
           
           // Draw marks (only for the current side)
           for (let i = marks.length - 1; i >= 0; i--) {
             const mark = marks[i];
-          
+            
             // Skip marks that aren't on the current side
             if (mark.side !== currentSide) continue;
             
@@ -352,20 +463,19 @@ function isPointOnVisiblePart(x, y, side) {
               marks.splice(i, 1);
               continue;
             }
-
-             //check expiration
-              const elapsedTime = Date.now() - mark.createdAt;
-              const lifetime = mark.lifetime;
-              if (elapsedTime >= lifetime) {
-                mark.expired = true;
-                continue;
-              }
             
-            // Calculate opacity
-            let opacity = 255;
-            if (!mark.isBandage) {
-              opacity = p.map(elapsedTime, 0, lifetime, 255, 0);
+            // Check expiration
+            const elapsedTime = Date.now() - mark.createdAt;
+            const lifetime = mark.lifetime;
+            
+            // ALL marks expire after lifetime (including bandages)
+            if (elapsedTime >= lifetime) {
+              mark.expired = true;
+              continue;
             }
+            
+            // Calculate opacity - bandages stay fully opaque
+            let opacity = mark.isBandage ? 255 : p.map(elapsedTime, 0, lifetime, 255, 0);
             
             // Draw mark
             p.push();
@@ -387,11 +497,9 @@ function isPointOnVisiblePart(x, y, side) {
             p.cursor(p.ARROW);
           }
           
-          // Update frowning state based on current side
-          const counts = countMarks();
-          if (!isFlipped) { // Only update frowning for front side
-            isFrowning = counts.nonKisses > 3;
-          }
+          // Update frowning state based on ALL marks
+          const totalCounts = countAllMarks();
+          isFrowning = totalCounts.nonKisses > 3;
         };
         
         // Handle window resize
@@ -400,86 +508,98 @@ function isPointOnVisiblePart(x, y, side) {
           setupButtons(); // Recalculate button positions
         };
         
-// Mouse pressed function
-p.mousePressed = function() {
-  // Check if clicked on a button
-  for (let button of buttons) {
-    if (button.contains(p.mouseX, p.mouseY)) {
-      button.click();
-      return;
-    }
-  }
-  
-  // Check if clicked on cartoon and a tool is selected
-  if (selectedTool && p.mouseX < p.width - 150) {
-    const imgX = p.width / 2 - 200;
-    const imgY = p.height / 2 - 250;
-    
-    // Calculate coordinates relative to image
-    const x = p.mouseX - imgX;
-    const y = p.mouseY - imgY;
-    const currentSide = isFlipped ? 'back' : 'front';
-    
-    // Check if click is within image bounds (0,0 to 400,500)
-    if (x >= 0 && x <= 400 && y >= 0 && y <= 500) {
-      
-      if (selectedTool === 'flip') {
-        isFlipped = !isFlipped;
-        // When flipping, we need to check if we should show the frowning state
-        const counts = countMarks();
-        isFrowning = counts.nonKisses > 3;
-      } else {
-        // Now check if we're clicking on a visible part of the image
-        if (isPointOnVisiblePart(x, y, currentSide)) {
-          // Calculate lifetime for this mark
-          const lifetime = getCurrentLifetime();
+        // Mouse pressed function
+        p.mousePressed = function() {
+          console.log("Mouse pressed at:", p.mouseX, p.mouseY);
           
-          // Add the mark
-          const newMark = {
-            type: selectedTool,
-            x: x,
-            y: y,
-            side: currentSide,
-            createdAt: Date.now(),
-            lifetime: lifetime,
-            isBandage: isFrowning && selectedTool !== 'kiss',
-            expired: false
-          };
-          
-          marks.push(newMark);
-          
-          // If this is a kiss, update all other marks' lifetime
-          if (selectedTool === 'kiss') {
-            updateAllMarksLifetime();
+          // Check if clicked on a button
+          for (let button of buttons) {
+            if (button.contains(p.mouseX, p.mouseY)) {
+              button.click();
+              return;
+            }
           }
           
-          // Update frowning state
-          const counts = countMarks();
-          isFrowning = counts.nonKisses > 3;
-          
-          // Check for too many bandages
-          if (counts.bandages > 3) {
-            const hideTime = Date.now() + (12 * 60 * 60 * 1000); // 12 hours
-            hideUntil = hideTime;
-            isHidden = true;
-            localStorage.setItem('possa-hide-until', hideTime.toString());
+          // Check if clicked on cartoon and a tool is selected
+          if (selectedTool && p.mouseX < p.width - 150) {
+            const imgX = p.width / 2 - 200;
+            const imgY = p.height / 2 - 250;
             
-            // Clear all marks
-            marks.forEach(mark => {
-              mark.expired = true;
-            });
+            // Calculate coordinates relative to image
+            const x = p.mouseX - imgX;
+            const y = p.mouseY - imgY;
+            const currentSide = isFlipped ? 'back' : 'front';
             
-            // Set timeout to show image again
-            setTimeout(() => {
-              isHidden = false;
-              localStorage.setItem('possa-hide-until', '0');
-            }, 12 * 60 * 60 * 1000);
+            console.log("Click relative to image:", x, y, "on side:", currentSide);
+            
+            // Check if click is within image bounds (0,0 to 400,500)
+            if (x >= 0 && x <= 400 && y >= 0 && y <= 500) {
+              
+              if (selectedTool === 'flip') {
+                isFlipped = !isFlipped;
+                console.log("Flipped to", isFlipped ? "back" : "front");
+                
+                // Frowning state should be consistent on both sides
+                const totalCounts = countAllMarks();
+                isFrowning = totalCounts.nonKisses > 3;
+              } else {
+                // Check if clicking on a visible part
+                console.log("Checking visibility...");
+                const isVisible = isPointOnVisiblePart(x, y, currentSide);
+                console.log("Point is visible:", isVisible);
+                
+                if (isVisible) {
+                  // Calculate lifetime for this mark
+                  const lifetime = getCurrentLifetime();
+                  
+                  // Add the mark
+                  const newMark = {
+                    type: selectedTool,
+                    x: x,
+                    y: y,
+                    side: currentSide,
+                    createdAt: Date.now(),
+                    lifetime: lifetime,
+                    isBandage: isFrowning && selectedTool !== 'kiss',
+                    expired: false
+                  };
+                  
+                  console.log("Adding mark:", newMark);
+                  marks.push(newMark);
+                  
+                  // If this is a kiss, update all other marks' lifetime
+                  if (selectedTool === 'kiss') {
+                    updateAllMarksLifetime();
+                  }
+                  
+                  // Update frowning state based on ALL marks
+                  const totalCounts = countAllMarks();
+                  isFrowning = totalCounts.nonKisses > 3;
+                  
+                  // Check for too many bandages
+                  if (totalCounts.bandages > 3) {
+                    console.log("Too many bandages! Hiding Possa");
+                    const hideTime = Date.now() + (12 * 60 * 60 * 1000); // 12 hours
+                    hideUntil = hideTime;
+                    isHidden = true;
+                    localStorage.setItem('possa-hide-until', hideTime.toString());
+                    
+                    // Clear all marks
+                    marks.forEach(mark => {
+                      mark.expired = true;
+                    });
+                    
+                    // Set timeout to show image again
+                    setTimeout(() => {
+                      isHidden = false;
+                      localStorage.setItem('possa-hide-until', '0');
+                    }, 12 * 60 * 60 * 1000);
+                  }
+                }
+              }
+            }
           }
-        }
-      }
-    }
-  }
-};
+        };
         
         // Setup button objects
         function setupButtons() {
