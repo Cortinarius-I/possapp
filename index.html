@@ -400,91 +400,86 @@ function isPointOnVisiblePart(x, y, side) {
           setupButtons(); // Recalculate button positions
         };
         
-        // Mouse pressed function
-        p.mousePressed = function() {
-          // Check if clicked on a button
-          for (let button of buttons) {
-            if (button.contains(p.mouseX, p.mouseY)) {
-              button.click();
-              return;
-            }
+// Mouse pressed function
+p.mousePressed = function() {
+  // Check if clicked on a button
+  for (let button of buttons) {
+    if (button.contains(p.mouseX, p.mouseY)) {
+      button.click();
+      return;
+    }
+  }
+  
+  // Check if clicked on cartoon and a tool is selected
+  if (selectedTool && p.mouseX < p.width - 150) {
+    const imgX = p.width / 2 - 200;
+    const imgY = p.height / 2 - 250;
+    
+    // Calculate coordinates relative to image
+    const x = p.mouseX - imgX;
+    const y = p.mouseY - imgY;
+    const currentSide = isFlipped ? 'back' : 'front';
+    
+    // Check if click is within image bounds (0,0 to 400,500)
+    if (x >= 0 && x <= 400 && y >= 0 && y <= 500) {
+      
+      if (selectedTool === 'flip') {
+        isFlipped = !isFlipped;
+        // When flipping, we need to check if we should show the frowning state
+        const counts = countMarks();
+        isFrowning = counts.nonKisses > 3;
+      } else {
+        // Now check if we're clicking on a visible part of the image
+        if (isPointOnVisiblePart(x, y, currentSide)) {
+          // Calculate lifetime for this mark
+          const lifetime = getCurrentLifetime();
+          
+          // Add the mark
+          const newMark = {
+            type: selectedTool,
+            x: x,
+            y: y,
+            side: currentSide,
+            createdAt: Date.now(),
+            lifetime: lifetime,
+            isBandage: isFrowning && selectedTool !== 'kiss',
+            expired: false
+          };
+          
+          marks.push(newMark);
+          
+          // If this is a kiss, update all other marks' lifetime
+          if (selectedTool === 'kiss') {
+            updateAllMarksLifetime();
           }
           
-          // Check if clicked on cartoon and a tool is selected
-          if (selectedTool && p.mouseX < p.width - 150) {
-            const imgX = p.width / 2 - 200;
-            const imgY = p.height / 2 - 250;
+          // Update frowning state
+          const counts = countMarks();
+          isFrowning = counts.nonKisses > 3;
+          
+          // Check for too many bandages
+          if (counts.bandages > 3) {
+            const hideTime = Date.now() + (12 * 60 * 60 * 1000); // 12 hours
+            hideUntil = hideTime;
+            isHidden = true;
+            localStorage.setItem('possa-hide-until', hideTime.toString());
             
-            // Check if click is within image bounds
-            if (isPointOnVisiblePart(x, y, currentSide)) {
-              
-              if (selectedTool === 'flip') {
-                isFlipped = !isFlipped;
-                // When flipping, we need to check if we should show the frowning state
-                if (!isFlipped) {
-                  const frontCounts = countMarks('front');
-                  isFrowning = frontCounts.nonKisses > 3;
-                } else {
-                  isFrowning = false; // No frowning on the back
-                }
-              } else {
-                // Calculate coordinates relative to image
-                const x = p.mouseX - imgX;
-                const y = p.mouseY - imgY;
-                const currentSide = isFlipped ? 'back' : 'front';
-                
-                // Calculate lifetime for this mark
-                const lifetime = getCurrentLifetime();
-                
-                // Add the mark
-                const newMark = {
-                  type: selectedTool,
-                  x: x,
-                  y: y,
-                  side: currentSide,
-                  createdAt: Date.now(),
-                  lifetime: lifetime,
-                  isBandage: isFrowning && selectedTool !== 'kiss' && currentSide === 'front',
-                  expired: false
-                };
-                
-                marks.push(newMark);
-                
-                // If this is a kiss, update all other marks' lifetime
-                if (selectedTool === 'kiss') {
-                  updateAllMarksLifetime();
-                }
-                
-                // Check for conditions only on the front side
-                if (currentSide === 'front') {
-                  const counts = countMarks('front');
-                  
-                  // Update frowning state
-                  isFrowning = counts.nonKisses > 3;
-                  
-                  // Check for too many bandages
-                  if (counts.bandages > 3) {
-                    const hideTime = Date.now() + (12 * 60 * 60 * 1000); // 12 hours
-                    hideUntil = hideTime;
-                    isHidden = true;
-                    localStorage.setItem('possa-hide-until', hideTime.toString());
-                    
-                    // Clear all marks
-                    marks.forEach(mark => {
-                      mark.expired = true;
-                    });
-                    
-                    // Set timeout to show image again
-                    setTimeout(() => {
-                      isHidden = false;
-                      localStorage.setItem('possa-hide-until', '0');
-                    }, 12 * 60 * 60 * 1000);
-                  }
-                }
-              }
-            }
+            // Clear all marks
+            marks.forEach(mark => {
+              mark.expired = true;
+            });
+            
+            // Set timeout to show image again
+            setTimeout(() => {
+              isHidden = false;
+              localStorage.setItem('possa-hide-until', '0');
+            }, 12 * 60 * 60 * 1000);
           }
-        };
+        }
+      }
+    }
+  }
+};
         
         // Setup button objects
         function setupButtons() {
