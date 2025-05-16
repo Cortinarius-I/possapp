@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Possa PWA</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+    
+    #p5-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    .login-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      width: 80%;
+      max-width: 400px;
+      text-align: center;
+    }
+    
+    .login-container h1 {
+      margin-top: 0;
+      font-size: 1.5em;
+    }
+    
+    .login-container input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    
+    .login-container label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 10px 0;
+    }
+    
+    .login-container button {
+      background-color: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      width: 100%;
+    }
+    
+    .login-container button:hover {
+      background-color: #3367d6;
+    }
+    
+    .error-message {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      display: none;
+    }
+    
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="p5-container"></div>
+  
+  <div id="login" class="login-container">
+    <h1>This is for possa eyes only. Are you possa?</h1>
+    <div id="error-message" class="error-message">
+      I don't trust you. You don't sound like possa. Please go away.
+    </div>
+    <label for="password">Enter response here:</label>
+    <input type="password" id="password">
+    <label>
+      <input type="checkbox" id="remember-device">
+      Remember this device
+    </label>
+    <button id="login-button">Enter</button>
+  </div>
+
+  <script>
+    // Check if user is already authenticated
+    let isAuthenticated = false;
+    try {
+      isAuthenticated = localStorage.getItem('possa-auth') === 'true';
+      if (isAuthenticated) {
+        document.getElementById('login').classList.add('hidden');
+      }
+    } catch (error) {
+      console.error("Error accessing localStorage:", error);
+    }
+    
+    // Login form handling
+    document.getElementById('login-button').addEventListener('click', handleLogin);
+    document.getElementById('password').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        handleLogin();
+      }
+    });
+    
+    function handleLogin() {
+      const password = document.getElementById('password').value;
+      const rememberDevice = document.getElementById('remember-device').checked;
+      
+      if (password.toLowerCase() === 'yada') {
+        isAuthenticated = true;
+        if (rememberDevice) {
+          try {
+            localStorage.setItem('possa-auth', 'true');
+          } catch (error) {
+            console.error("Error storing authentication:", error);
+          }
+        }
+        document.getElementById('login').classList.add('hidden');
+        startSketch(); // Start p5 sketch after successful login
+      } else {
+        document.getElementById('error-message').style.display = 'block';
+      }
+    }
+    
+    function startSketch() {
+      // P5.js sketch
+      const sketch = function(p) {
+        // Global variables
+        let frontImage, backImage, frownImage;
+        let isFlipped = false;
+        let isFrowning = false;
+        let isHidden = false;
+        let hideUntil = 0;
+        let selectedTool = null;
+        let marks = [];
+        let buttons = [];
+        let baseLifetime = 3 * 60 * 1000; // 3 minutes in milliseconds
+        
+        // Check hide state from localStorage
+        try {
+          const storedHideUntil = parseInt(localStorage.getItem('possa-hide-until') || '0', 10);
+          hideUntil = storedHideUntil;
+          if (hideUntil > Date.now()) {
+            isHidden = true;
+            setTimeout(() => {
+              isHidden = false;
+              localStorage.setItem('possa-hide-until', '0');
+              p.redraw();
+            }, hideUntil - Date.now());
+          }
+        } catch (error) {
+          console.error("Error checking hide state:", error);
+        }
+        
+        // Setup function
+        p.setup = function() {
+          console.log("P5 setup starting");
+          p.createCanvas(p.windowWidth, p.windowHeight);
+          createPlaceholderImages();
+          setupButtons();
+          console.log("P5 setup complete");
+        };
+        
+        // Create placeholder images instead of loading external files
+        function createPlaceholderImages() {
+          console.log("Creating placeholder images");
+          
+          // Create happy face image
+          frontImage = p.createGraphics(400, 500);
+          frontImage.background(200, 230, 255);
+          frontImage.fill(255);
+          frontImage.ellipse(200, 200, 300, 300);
+          frontImage.fill(0);
+          frontImage.ellipse(150, 150, 20, 20);
+          frontImage.ellipse(250, 150, 20, 20);
+          frontImage.noFill();
+          frontImage.stroke(0);
+          frontImage.strokeWeight(3);
+          frontImage.arc(200, 230, 150, 100, 0, p.PI);
+          
+          // Create back image
+          backImage = p.createGraphics(400, 500);
+          backImage.background(230, 210, 200);
+          backImage.fill(255);
+          backImage.ellipse(200, 200, 300, 300);
+          backImage.fill(0);
+          backImage.textSize(40);
+          backImage.textAlign(p.CENTER, p.CENTER);
+          backImage.text("BACK", 200, 200);
+          
+          // Create frowning image
+          frownImage = p.createGraphics(400, 500);
+          frownImage.background(255, 200, 200);
+          frownImage.fill(255);
+          frownImage.ellipse(200, 200, 300, 300);
+          frownImage.fill(0);
+          frownImage.ellipse(150, 150, 20, 20);
+          frownImage.ellipse(250, 150, 20, 20);
+          frownImage.noFill();
+          frownImage.stroke(0);
+          frownImage.strokeWeight(3);
+          frownImage.arc(200, 270, 150, 100, p.PI, p.TWO_PI);
+          
+          console.log("Placeholder images created");
+        }
+        
+        // Create tool icons
+        function getToolIcon(tool, size = 30) {
+          let icon = p.createGraphics(size, size);
+          
+          switch(tool) {
+            case 'kiss':
+              icon.fill(255, 0, 0);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.textSize(20);
+              icon.textAlign(p.CENTER, p.CENTER);
+              icon.text("💋", size/2, size/2);
+              break;
+            case 'bite':
+              icon.fill(128, 0, 128);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.text("🦷", size/2, size/2);
+              break;
+            case 'whack':
+              icon.fill(0, 0, 255);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.text("👊", size/2, size/2);
+              break;
+            case 'squeeze':
+              icon.fill(0, 128, 0);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.text("✋", size/2, size/2);
+              break;
+            case 'hickey':
+              icon.fill(255, 105, 180);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.text("❤️", size/2, size/2);
+              break;
+            case 'flip':
+              icon.fill(128, 128, 128);
+              icon.ellipse(size/2, size/2, size, size);
+              icon.fill(255);
+              icon.text("🔄", size/2, size/2);
+              break;
+            case 'bandage':
+              icon.fill(255, 215, 0);
+              icon.rect(5, 10, 20, 10, 5);
+              icon.stroke(0);
+              icon.line(15, 5, 15, 25);
+              icon.line(5, 15, 25, 15);
+              break;
+          }
+          
+          return icon;
+        }
+        
+        // Calculate the current lifetime based on number of kisses
+        function getCurrentLifetime() {
+          const kisses = marks.filter(m => !m.expired && m.type === 'kiss').length;
+          const kissGroups = Math.floor(kisses / 3);
+          if (kissGroups > 0) {
+            return baseLifetime / Math.pow(2, kissGroups);
+          }
+          return baseLifetime;
+        }
+        
+        // Update the lifetime of all marks when a new kiss is added
+        function updateAllMarksLifetime() {
+          const newLifetime = getCurrentLifetime();
+          
+          for (let mark of marks) {
+            if (!mark.expired) {
+              // Calculate how much time has already passed
+              const elapsedTime = Date.now() - mark.createdAt;
+              const remainingTimePercent = 1 - (elapsedTime / mark.lifetime);
+              
+              // Set the new lifetime and adjust the createdAt to maintain correct fade progress
+              mark.lifetime = newLifetime;
+              mark.createdAt = Date.now() - (newLifetime * (1 - remainingTimePercent));
+            }
+          }
+        }
+        
+        // Count non-expired marks
+        function countMarks(side) {
+          const currentSide = side || (isFlipped ? 'back' : 'front');
+          return {
+            nonKisses: marks.filter(m => !m.expired && m.type !== 'kiss' && m.side === currentSide).length,
+            kisses: marks.filter(m => !m.expired && m.type === 'kiss' && m.side === currentSide).length,
+            bandages: marks.filter(m => !m.expired && m.isBandage && m.side === currentSide).length
+          };
+        }
+        
+        // Draw function
+        p.draw = function() {
+          p.background(240);
+          
+          // Draw sidebar
+          p.fill(255);
+          p.noStroke();
+          p.rect(p.width - 150, 0, 150, p.height);
+          
+          // Draw buttons
+          for (let button of buttons) {
+            button.display();
+          }
+          
+          // Draw cartoon
+          const imgX = p.width / 2 - 200;
+          const imgY = p.height / 2 - 250;
+          
+          if (isHidden) {
+            p.fill(255);
+            p.rect(p.width/2 - 200, p.height/2 - 100, 400, 200, 10);
+            p.fill(0);
+            p.textSize(16);
+            p.textAlign(p.CENTER, p.CENTER);
+            p.text("Possa is hurt emotionally and physically.\nHe is taking a walk to rethink things\nand to heal physically and emotionally.", p.width/2, p.height/2);
+            return;
+          }
+          
+          // Determine which image to display
+          let currentImage = frontImage;
+          const currentSide = isFlipped ? 'back' : 'front';
+          
+          if (isFlipped) {
+            currentImage = backImage;
+          } else if (isFrowning) {
+            currentImage = frownImage;
+          }
+          
+          p.image(currentImage, imgX, imgY);
+          
+          // Draw marks (only for the current side)
+          for (let i = marks.length - 1; i >= 0; i--) {
+            const mark = marks[i];
+            
+            // Skip marks that aren't on the current side
+            if (mark.side !== currentSide) continue;
+            
+            // Remove expired marks
+            if (mark.expired) {
+              marks.splice(i, 1);
+              continue;
+            }
+            
+            // Calculate opacity
+            let opacity = 255;
+            if (!mark.isBandage) {
+              const elapsedTime = Date.now() - mark.createdAt;
+              const lifetime = mark.lifetime;
+              opacity = p.map(elapsedTime, 0, lifetime, 255, 0);
+              
+              // Mark as expired if time is up
+              if (elapsedTime >= lifetime) {
+                mark.expired = true;
+                continue;
+              }
+            }
+            
+            // Draw mark
+            p.push();
+            p.tint(255, opacity);
+            
+            let iconName = mark.isBandage ? 'bandage' : mark.type;
+            let icon = getToolIcon(iconName);
+            
+            p.image(icon, imgX + mark.x - 15, imgY + mark.y - 15);
+            p.pop();
+          }
+          
+          // Custom cursor
+          if (selectedTool && p.mouseX < p.width - 150) {
+            p.noCursor();
+            let toolIcon = getToolIcon(selectedTool);
+            p.image(toolIcon, p.mouseX - 15, p.mouseY - 15);
+          } else {
+            p.cursor(p.ARROW);
+          }
+          
+          // Update frowning state based on current side
+          const counts = countMarks();
+          if (!isFlipped) { // Only update frowning for front side
+            isFrowning = counts.nonKisses > 3;
+          }
+        };
+        
+        // Handle window resize
+        p.windowResized = function() {
+          p.resizeCanvas(p.windowWidth, p.windowHeight);
+          setupButtons(); // Recalculate button positions
+        };
+        
+        // Mouse pressed function
+        p.mousePressed = function() {
+          // Check if clicked on a button
+          for (let button of buttons) {
+            if (button.contains(p.mouseX, p.mouseY)) {
+              button.click();
+              return;
+            }
+          }
+          
+          // Check if clicked on cartoon and a tool is selected
+          if (selectedTool && p.mouseX < p.width - 150) {
+            const imgX = p.width / 2 - 200;
+            const imgY = p.height / 2 - 250;
+            
+            // Check if click is within image bounds
+            if (p.mouseX >= imgX && p.mouseX <= imgX + 400 && 
+                p.mouseY >= imgY && p.mouseY <= imgY + 500) {
+              
+              if (selectedTool === 'flip') {
+                isFlipped = !isFlipped;
+                // When flipping, we need to check if we should show the frowning state
+                if (!isFlipped) {
+                  const frontCounts = countMarks('front');
+                  isFrowning = frontCounts.nonKisses > 3;
+                } else {
+                  isFrowning = false; // No frowning on the back
+                }
+              } else {
+                // Calculate coordinates relative to image
+                const x = p.mouseX - imgX;
+                const y = p.mouseY - imgY;
+                const currentSide = isFlipped ? 'back' : 'front';
+                
+                // Calculate lifetime for this mark
+                const lifetime = getCurrentLifetime();
+                
+                // Add the mark
+                const newMark = {
+                  type: selectedTool,
+                  x: x,
+                  y: y,
+                  side: currentSide,
+                  createdAt: Date.now(),
+                  lifetime: lifetime,
+                  isBandage: isFrowning && selectedTool !== 'kiss' && currentSide === 'front',
+                  expired: false
+                };
+                
+                marks.push(newMark);
+                
+                // If this is a kiss, update all other marks' lifetime
+                if (selectedTool === 'kiss') {
+                  updateAllMarksLifetime();
+                }
+                
+                // Check for conditions only on the front side
+                if (currentSide === 'front') {
+                  const counts = countMarks('front');
+                  
+                  // Update frowning state
+                  isFrowning = counts.nonKisses > 3;
+                  
+                  // Check for too many bandages
+                  if (counts.bandages > 3) {
+                    const hideTime = Date.now() + (12 * 60 * 60 * 1000); // 12 hours
+                    hideUntil = hideTime;
+                    isHidden = true;
+                    localStorage.setItem('possa-hide-until', hideTime.toString());
+                    
+                    // Clear all marks
+                    marks.forEach(mark => {
+                      mark.expired = true;
+                    });
+                    
+                    // Set timeout to show image again
+                    setTimeout(() => {
+                      isHidden = false;
+                      localStorage.setItem('possa-hide-until', '0');
+                    }, 12 * 60 * 60 * 1000);
+                  }
+                }
+              }
+            }
+          }
+        };
+        
+        // Setup button objects
+        function setupButtons() {
+          buttons = [];
+          
+          const btnWidth = 120;
+          const btnHeight = 40;
+          const btnX = p.width - 135;
+          let btnY = 20;
+          
+          // Logout button
+          buttons.push({
+            x: btnX,
+            y: btnY,
+            width: btnWidth,
+            height: btnHeight,
+            label: "Log out",
+            color: p.color(244, 67, 54),
+            contains: function(mx, my) {
+              return mx > this.x && mx < this.x + this.width && 
+                     my > this.y && my < this.y + this.height;
+            },
+            display: function() {
+              p.fill(this.color);
+              p.rect(this.x, this.y, this.width, this.height, 5);
+              p.fill(255);
+              p.textAlign(p.CENTER, p.CENTER);
+              p.textSize(14);
+              p.text(this.label, this.x + this.width/2, this.y + this.height/2);
+            },
+            click: function() {
+              isAuthenticated = false;
+              localStorage.removeItem('possa-auth');
+              window.location.reload(); // Reload page to return to login
+            }
+          });
+          
+          btnY += btnHeight + 10;
+          
+          // Tool buttons
+          const tools = ['kiss', 'bite', 'whack', 'squeeze', 'hickey', 'flip'];
+          for (let tool of tools) {
+            buttons.push({
+              x: btnX,
+              y: btnY,
+              width: btnWidth,
+              height: btnHeight,
+              label: tool.charAt(0).toUpperCase() + tool.slice(1),
+              tool: tool,
+              contains: function(mx, my) {
+                return mx > this.x && mx < this.x + this.width && 
+                       my > this.y && my < this.y + this.height;
+              },
+              display: function() {
+                if (selectedTool === this.tool) {
+                  p.fill(66, 133, 244);
+                } else {
+                  p.fill(224, 224, 224);
+                }
+                p.rect(this.x, this.y, this.width, this.height, 5);
+                p.fill(selectedTool === this.tool ? 255 : 0);
+                p.textAlign(p.CENTER, p.CENTER);
+                p.textSize(14);
+                p.text(this.label, this.x + this.width/2, this.y + this.height/2);
+              },
+              click: function() {
+                selectedTool = this.tool;
+                console.log("Selected tool:", selectedTool);
+              }
+            });
+            btnY += btnHeight + 10;
+          }
+        }
+      };
+      
+      // Create p5 instance
+      new p5(sketch, 'p5-container');
+    }
+    
+    // Start sketch immediately if already authenticated
+    if (isAuthenticated) {
+      startSketch();
+    }
+  </script>
+</body>
+</html>
