@@ -176,16 +176,16 @@
         p.setup = function() {
           console.log("P5 setup starting");
           p.createCanvas(p.windowWidth, p.windowHeight);
-          createPlaceholderImages();
           setupButtons();
+          loadImages();
           console.log("P5 setup complete");
         };
         
-        // Create placeholder images instead of loading external files
+        // images
 function loadImages() {
-  frontImage = p.loadImage('images/possa-front.png');
-  backImage = p.loadImage('images/possa-back.png');
-  frownImage = p.loadImage('images/possa-frown.png');
+  frontImage = p.loadImage('images/front.png');
+  backImage = p.loadImage('images/back.png');
+  frownImage = p.loadImage('images/frown.png');
 }
         // Create tool icons
         function getToolIcon(tool, size = 30) {
