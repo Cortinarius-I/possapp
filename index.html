@@ -294,8 +294,8 @@ function loadImages() {
           }
           
           // Draw cartoon
-          const imgX = p.width / 2 - 400;
-          const imgY = p.height / 2 - 450;
+          const imgX = p.width / 2 - 200;
+          const imgY = p.height / 2 - 250;
           
           if (isHidden) {
             p.fill(255);
@@ -389,8 +389,8 @@ function loadImages() {
           
           // Check if clicked on cartoon and a tool is selected
           if (selectedTool && p.mouseX < p.width - 150) {
-            const imgX = p.width / 2 - 400;
-            const imgY = p.height / 2 - 450;
+            const imgX = p.width / 2 - 200;
+            const imgY = p.height / 2 - 250;
             
             // Check if click is within image bounds
             if (p.mouseX >= imgX && p.mouseX <= imgX + 400 && 
