@@ -331,19 +331,19 @@ function loadImages() {
               marks.splice(i, 1);
               continue;
             }
-            
-            // Calculate opacity
-            let opacity = 255;
-            if (!mark.isBandage) {
+
+             //check expiration
               const elapsedTime = Date.now() - mark.createdAt;
               const lifetime = mark.lifetime;
-              opacity = p.map(elapsedTime, 0, lifetime, 255, 0);
-              
-              // Mark as expired if time is up
               if (elapsedTime >= lifetime) {
                 mark.expired = true;
                 continue;
               }
+            
+            // Calculate opacity
+            let opacity = 255;
+            if (!mark.isBandage) {
+              opacity = p.map(elapsedTime, 0, lifetime, 255, 0);
             }
             
             // Draw mark
