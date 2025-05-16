@@ -294,8 +294,8 @@ function loadImages() {
           }
           
           // Draw cartoon
-          const imgX = p.width / 2 - 200;
-          const imgY = p.height / 2 - 250;
+          const imgX = p.width / 2 - 400;
+          const imgY = p.height / 2 - 450;
           
           if (isHidden) {
             p.fill(255);
@@ -323,8 +323,6 @@ function loadImages() {
           for (let i = marks.length - 1; i >= 0; i--) {
             const mark = marks[i];
             
-            // Skip marks that aren't on the current side
-            if (mark.side !== currentSide) continue;
             
             // Remove expired marks
             if (mark.expired) {
@@ -391,8 +389,8 @@ function loadImages() {
           
           // Check if clicked on cartoon and a tool is selected
           if (selectedTool && p.mouseX < p.width - 150) {
-            const imgX = p.width / 2 - 200;
-            const imgY = p.height / 2 - 250;
+            const imgX = p.width / 2 - 400;
+            const imgY = p.height / 2 - 450;
             
             // Check if click is within image bounds
             if (p.mouseX >= imgX && p.mouseX <= imgX + 400 && 
