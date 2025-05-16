@@ -271,12 +271,11 @@ function loadImages() {
         
         // Count non-expired marks
         function countMarks(side) {
-          const currentSide = side || (isFlipped ? 'back' : 'front');
-          return {
-            nonKisses: marks.filter(m => !m.expired && m.type !== 'kiss' && m.side === currentSide).length,
-            kisses: marks.filter(m => !m.expired && m.type === 'kiss' && m.side === currentSide).length,
-            bandages: marks.filter(m => !m.expired && m.isBandage && m.side === currentSide).length
-          };
+  return {
+    nonKisses: marks.filter(m => !m.expired && m.type !== 'kiss').length,
+    kisses: marks.filter(m => !m.expired && m.type === 'kiss').length,
+    bandages: marks.filter(m => !m.expired && m.isBandage).length
+  };
         }
         
         // Draw function
