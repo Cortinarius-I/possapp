@@ -317,6 +317,28 @@ function loadImages() {
           }
           
           p.image(currentImage, imgX, imgY);
+
+          // Function to only mark visible image
+function isPointOnVisiblePart(x, y, side) {
+  // Get the right image based on side and state
+  let img;
+  if (side === 'back') {
+    img = backImage;
+  } else {
+    img = isFrowning ? frownImage : frontImage;
+  }
+  
+  // Load pixel data (must call this before accessing pixels)
+  img.loadPixels();
+  
+  // Calculate the position in the pixel array
+  // Each pixel has 4 values (RGBA)
+  const d = 4 * (Math.floor(y) * img.width + Math.floor(x));
+  
+  // Check if the alpha value (fourth value) is above a threshold
+  // Pixels array format: [R, G, B, A, R, G, B, A, ...]
+  return img.pixels[d + 3] > 10; // Alpha threshold (0-255)
+}
           
           // Draw marks (only for the current side)
           for (let i = marks.length - 1; i >= 0; i--) {
@@ -394,8 +416,7 @@ function loadImages() {
             const imgY = p.height / 2 - 250;
             
             // Check if click is within image bounds
-            if (p.mouseX >= imgX && p.mouseX <= imgX + 400 && 
-                p.mouseY >= imgY && p.mouseY <= imgY + 500) {
+            if (isPointOnVisiblePart(x, y, currentSide)) {
               
               if (selectedTool === 'flip') {
                 isFlipped = !isFlipped;
