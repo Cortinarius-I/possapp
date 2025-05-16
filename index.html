@@ -322,7 +322,9 @@ function loadImages() {
           // Draw marks (only for the current side)
           for (let i = marks.length - 1; i >= 0; i--) {
             const mark = marks[i];
-            
+          
+            // Skip marks that aren't on the current side
+            if (mark.side !== currentSide) continue;
             
             // Remove expired marks
             if (mark.expired) {
