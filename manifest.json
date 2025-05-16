@@ -2,7 +2,7 @@
   "name": "Possa Interactive PWA",
   "short_name": "Possa",
   "description": "A personal interactive cartoon experience for possa",
-  "start_url": "/",
+  "start_url": "https://cortinarius-i.github.io/possapp/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4285f4",
