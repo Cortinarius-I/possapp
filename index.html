@@ -182,48 +182,11 @@
         };
         
         // Create placeholder images instead of loading external files
-        function createPlaceholderImages() {
-          console.log("Creating placeholder images");
-          
-          // Create happy face image
-          frontImage = p.createGraphics(400, 500);
-          frontImage.background(200, 230, 255);
-          frontImage.fill(255);
-          frontImage.ellipse(200, 200, 300, 300);
-          frontImage.fill(0);
-          frontImage.ellipse(150, 150, 20, 20);
-          frontImage.ellipse(250, 150, 20, 20);
-          frontImage.noFill();
-          frontImage.stroke(0);
-          frontImage.strokeWeight(3);
-          frontImage.arc(200, 230, 150, 100, 0, p.PI);
-          
-          // Create back image
-          backImage = p.createGraphics(400, 500);
-          backImage.background(230, 210, 200);
-          backImage.fill(255);
-          backImage.ellipse(200, 200, 300, 300);
-          backImage.fill(0);
-          backImage.textSize(40);
-          backImage.textAlign(p.CENTER, p.CENTER);
-          backImage.text("BACK", 200, 200);
-          
-          // Create frowning image
-          frownImage = p.createGraphics(400, 500);
-          frownImage.background(255, 200, 200);
-          frownImage.fill(255);
-          frownImage.ellipse(200, 200, 300, 300);
-          frownImage.fill(0);
-          frownImage.ellipse(150, 150, 20, 20);
-          frownImage.ellipse(250, 150, 20, 20);
-          frownImage.noFill();
-          frownImage.stroke(0);
-          frownImage.strokeWeight(3);
-          frownImage.arc(200, 270, 150, 100, p.PI, p.TWO_PI);
-          
-          console.log("Placeholder images created");
-        }
-        
+function loadImages() {
+  frontImage = p.loadImage('images/possa-front.png');
+  backImage = p.loadImage('images/possa-back.png');
+  frownImage = p.loadImage('images/possa-frown.png');
+}
         // Create tool icons
         function getToolIcon(tool, size = 30) {
           let icon = p.createGraphics(size, size);
