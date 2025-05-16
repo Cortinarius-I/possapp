@@ -177,6 +177,7 @@
         p.preload = function() {
           console.log("Loading images...");
           loadImages();
+          preloadIcons();
         };
         
         // Setup function
@@ -475,21 +476,30 @@ function getToolIcon(type) {
             p.push();
             p.tint(255, opacity);
             
-            let iconName = mark.isBandage ? 'bandage' : mark.type;
-            let icon = getToolIcon(iconName);
-            
-            p.image(icon, imgX + mark.x - 15, imgY + mark.y - 15);
+let iconName = mark.isBandage ? 'bandage' : mark.type;
+let icon = getToolIcon(iconName);
+p.image(icon, imgX + mark.x - 15, imgY + mark.y - 15, 30, 30);
             p.pop();
           }
+
+          // Set cursor based on selected tool
+function updateCursor() {
+  if (selectedTool && p.mouseX < p.width - 150) {
+    // Remove default cursor
+    p.noCursor();
+    
+    // For other tools, show the SVG icon as cursor
+    if (svgIcons[selectedTool]) {
+      p.image(svgIcons[selectedTool], p.mouseX - 15, p.mouseY - 15, 30, 30);
+    }
+  } else {
+    // Reset to default cursor
+    document.body.style.cursor = 'default';
+    p.cursor(p.ARROW);
+  }
+}
           
-          // Custom cursor
-          if (selectedTool && p.mouseX < p.width - 150) {
-            p.noCursor();
-            let toolIcon = getToolIcon(selectedTool);
-            p.image(toolIcon, p.mouseX - 15, p.mouseY - 15);
-          } else {
-            p.cursor(p.ARROW);
-          }
+updateCursor();
           
           // Update frowning state based on ALL marks
           const totalCounts = countAllMarks();
